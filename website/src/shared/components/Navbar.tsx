@@ -30,8 +30,8 @@ export default function Navbar() {
               href="/"
             >
               <img
-                src={LOGO_URL ?? '/yopass.svg'}
-                alt={APP_NAME ?? 'Yopass'}
+                src={LOGO_URL ?? '/thingsboard.svg'}
+                alt={APP_NAME ?? 'ThingsBoard Secrets'}
                 className="h-8 w-8 mr-3"
               />
               {APP_NAME ?? t('header.appName')}

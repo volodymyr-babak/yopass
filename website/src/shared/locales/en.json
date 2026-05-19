@@ -97,25 +97,25 @@
   },
   "features": {
     "title": "Share secrets securely with ease",
-    "subtitle": "Yopass is created to reduce the amount of clear text passwords stored in email and chat conversations by encrypting and generating a short lived link which can only be viewed once.",
+    "subtitle": "ThingsBoard Secrets lets you share passwords, credentials, and files with end-to-end encryption — no more clear-text secrets in email, chat, or tickets.",
     "featureEndToEndTitle": "End-to-End Encryption",
-    "featureEndToEndText": "Encryption and decryption are being made locally in the browser. The key is never stored with yopass.",
+    "featureEndToEndText": "Encryption and decryption happen locally in your browser. The decryption key never leaves your machine.",
     "featureSelfDestructionTitle": "Self Destruction",
     "featureSelfDestructionText": "Encrypted messages have a fixed lifetime and will be deleted automatically after expiration.",
     "featureOneTimeTitle": "One-time Downloads",
     "featureOneTimeText": "The encrypted message can only be downloaded once which reduces the risk of someone peeking at your secrets.",
     "featureSimpleSharingTitle": "Simple Sharing",
-    "featureSimpleSharingText": "Yopass generates a unique one click link for the encrypted file or message. The decryption password can alternatively be sent separately.",
+    "featureSimpleSharingText": "ThingsBoard Secrets generates a unique one-click link for the encrypted file or message. The decryption key can optionally be sent through a separate channel.",
     "featureNoAccountsTitle": "No Accounts Needed",
     "featureNoAccountsText": "Sharing should be quick and easy; No additional information except the encrypted secret is stored in the database.",
     "featureOpenSourceTitle": "Open Source Software",
-    "featureOpenSourceText": "Yopass encryption mechanism are built on open source software meaning full transparency with the possibility to audit and submit features."
+    "featureOpenSourceText": "Encryption is built on open-source software (OpenPGP), giving you full transparency and the ability to audit every line of code."
   },
   "header": {
     "buttonHome": "Home",
     "buttonUpload": "Upload",
     "buttonText": "Text",
-    "appName": "Yopass"
+    "appName": "ThingsBoard Secrets"
   },
   "common": {
     "copy": "Copy",
@@ -124,7 +124,7 @@
   "footer": {
     "privacyNotice": "Privacy Notice",
     "imprint": "Imprint",
-    "createdBy": "Created by"
+    "createdBy": "Powered by Yopass — created by"
   },
   "readOnly": {
     "title": "Secret Retrieval",

@@ -405,8 +405,8 @@ func (y *Server) configHandler(w http.ResponseWriter, r *http.Request) {
 			config["APP_NAME"] = appName
 		}
 	} else {
-		config["THEME_LIGHT"] = "emerald"
-		config["THEME_DARK"] = "dim"
+		config["THEME_LIGHT"] = "corporate"
+		config["THEME_DARK"] = "business"
 	}
 
 	if err := json.NewEncoder(w).Encode(config); err != nil {
@@ -414,9 +414,9 @@ func (y *Server) configHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// logoHandler serves the built-in yopass.svg logo.
+// logoHandler serves the built-in branded logo.
 func (y *Server) logoHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, filepath.Join(y.AssetPath, "yopass.svg"))
+	http.ServeFile(w, r, filepath.Join(y.AssetPath, "thingsboard.svg"))
 }
 
 // versionHandler returns the server version

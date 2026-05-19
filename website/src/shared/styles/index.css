@@ -2,3 +2,9 @@
 @plugin "daisyui" {
   themes: all;
 }
+
+/* ThingsBoard brand override — pins primary to #305680 on every daisyUI theme */
+[data-theme] {
+  --color-primary: oklch(40% 0.08 254);
+  --color-primary-content: oklch(100% 0 0);
+}

@@ -32,8 +32,8 @@ const defaultConfig: Config = {
   PREFETCH_SECRET: true,
   NO_LANGUAGE_SWITCHER: false,
   FORCE_ONETIME_SECRETS: false,
-  THEME_LIGHT: 'emerald',
-  THEME_DARK: 'dim',
+  THEME_LIGHT: 'corporate',
+  THEME_DARK: 'business',
   OIDC_ENABLED: false,
   REQUIRE_AUTH: false,
 };

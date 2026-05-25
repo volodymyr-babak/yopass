@@ -1,23 +1,66 @@
-version: "3.8"
-
 services:
-  memcached:
-    image: memcached
-    restart: always
-    expose:
-      - "11211"
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - redis-data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - yopass-internal
 
   yopass:
-    image: jhaals/yopass
-    restart: always
+    image: volodymyrbabak/tb-yopass:1.0.0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
-      - "127.0.0.1:80:80"
+      # Bind to localhost only; expect a reverse proxy (nginx, traefik, ALB) to terminate TLS in front.
+      - "127.0.0.1:1337:1337"
     environment:
-      - MEMCACHED=memcached:11211
-      - PORT=80
+      - DATABASE=redis
+      - REDIS=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - PORT=1337
+      - FORCE_ONETIME_SECRETS=false
+      - MAX_LENGTH=10000
     healthcheck:
       test: ["CMD", "/yopass-server", "--health-check"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    networks:
+      - yopass-internal
+
+networks:
+  yopass-internal:
+    driver: bridge
+
+# yamllint disable rule:empty-values
+volumes:
+  redis-data:
+# yamllint enable rule:empty-values

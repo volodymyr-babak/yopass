@@ -168,14 +168,102 @@ docker run -d --name secrets -p 1337:1337 \
   --address=0.0.0.0
 ```
 
-### B) docker-compose
+### B) docker-compose (recommended — published image + Redis)
 
-Copy `deploy/with-nginx-proxy-and-letsencrypt/docker-compose.yml` from upstream, swap the image for your built one, and set:
+A ready-to-use prod-grade compose is committed at `deploy/docker-compose/insecure/`. It runs the published image `volodymyrbabak/tb-yopass:1.0.0` with a Redis backend (persistence + password), healthchecks, restart policy, and security hardening (`no-new-privileges`, `read_only`). Redis is not exposed externally — only reachable on an internal bridge network. Yopass binds to `127.0.0.1:1337`, so put a TLS-terminating reverse proxy (nginx / traefik / ALB) in front for public exposure.
+
+**Files**
+
+| Path | Purpose |
+|------|---------|
+| `deploy/docker-compose/insecure/docker-compose.yml` | The stack: `redis` + `yopass` services, internal network, `redis-data` volume |
+| `deploy/docker-compose/insecure/.env.example` | Template for `REDIS_PASSWORD` |
+
+**First-time setup**
+
+```bash
+cd deploy/docker-compose/insecure
+
+# 1. Create .env with a strong Redis password
+cp .env.example .env
+REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 48)
+sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASSWORD}|" .env
+
+# 2. Pull & start
+docker compose pull
+docker compose up -d
+
+# 3. Verify
+docker compose ps                              # both must show (healthy)
+curl -fsS http://127.0.0.1:1337/ready          # {"status":"ready"}
+curl -fsS http://127.0.0.1:1337/health         # {"status":"healthy"}
+```
+
+Open <http://127.0.0.1:1337/> through your reverse proxy.
+
+**Setting public URL & other flags**
+
+Add environment variables to the `yopass` service in `docker-compose.yml` — all server flags are exposed as env vars (uppercase, `-` → `_`):
 
 ```yaml
-environment:
-  PUBLIC_URL: https://secrets.thingsboard.io   # so generated share links use this domain
+    environment:
+      - DATABASE=redis
+      - REDIS=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - PORT=1337
+      - PUBLIC_URL=https://secrets.thingsboard.io   # so share links use this domain
+      - DEFAULT_EXPIRY=24h
+      - MAX_FILE_SIZE=512KB
+      - PRIVACY_NOTICE_URL=https://thingsboard.io/privacy
+      # - FORCE_ONETIME_SECRETS=true                # uncomment to disallow multi-view secrets
 ```
+
+Apply with `docker compose up -d` (recreates only the changed container).
+
+**Day-2 operations**
+
+```bash
+# Logs
+docker compose logs -f yopass
+docker compose logs -f redis
+
+# Update to a newer image tag — edit image: line, then:
+docker compose pull && docker compose up -d
+
+# Restart everything
+docker compose restart
+
+# Stop (keeps data)
+docker compose down
+
+# Wipe everything including Redis data — destructive
+docker compose down -v
+```
+
+**Backups**
+
+Secrets live in the `redis-data` volume (AOF persistence, fsync every 1s). To back up:
+
+```bash
+# Trigger an AOF rewrite, then copy the volume contents
+docker compose exec redis redis-cli -a "$REDIS_PASSWORD" BGREWRITEAOF
+docker run --rm \
+  -v insecure_redis-data:/data:ro \
+  -v "$(pwd)":/backup \
+  alpine tar czf /backup/redis-$(date +%F).tar.gz -C /data .
+```
+
+Restore by stopping the stack, replacing the volume contents from the tar, and starting again.
+
+**Hardening notes already applied**
+
+- `no-new-privileges: true` on both services
+- `read_only: true` on the yopass container (works because no local file-store is configured; switch to a tmpfs/volume if you set `FILE_STORE=disk`)
+- Redis: `requirepass`, AOF persistence, `maxmemory 256mb`, `maxmemory-policy noeviction` so writes fail loudly on memory pressure instead of silently dropping secrets
+- yopass exposed on `127.0.0.1` only — public exposure must go through a reverse proxy
+
+**Adding TLS / public DNS**
+
+The `with-nginx-proxy-and-letsencrypt/` directory contains the upstream pattern using `jwilder/nginx-proxy` + `letsencrypt-nginx-proxy-companion`. To use it with our setup, port the `redis` service + Redis env vars from `insecure/docker-compose.yml` into it and set `VIRTUAL_HOST` / `LETSENCRYPT_HOST` / `LETSENCRYPT_EMAIL` on the yopass service.
 
 ---
 
@@ -206,7 +294,8 @@ All flags also work as env vars (uppercase, dashes → underscores), e.g. `ASSET
 | `404 page not found` on `/` but `/config` works | `--asset-path` not pointed at the SPA build | Add `--asset-path=./website/dist` |
 | Favicon still says Yopass | Browser cache | Hard-reload (Ctrl-Shift-R) |
 | Primary buttons are green | Stale SPA build — old `index.css` | `cd website && yarn build` again, restart server |
-| `dial tcp :11211: connection refused` | Memcached not running | `docker start yopass-memcached` |
+| `dial tcp :11211: connection refused` | Local dev: memcached not running | `docker start yopass-memcached` |
+| `dial tcp redis:6379: ... connection refused` or auth errors | Redis container unhealthy or wrong password | `docker compose ps`; confirm `REDIS_PASSWORD` in `.env` matches what's in the running container |
 | Generated share link uses `localhost` in prod | `--public-url` not set | Set `--public-url=https://your-domain` |
 | OIDC login redirects loop | OIDC `redirect_uri` mismatch | Make sure the IdP allows `<public-url>/auth/callback` |
 
